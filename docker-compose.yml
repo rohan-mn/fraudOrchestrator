@@ -1,42 +1,32 @@
 services:
- 
+
   kafka:
     image: confluentinc/cp-kafka:latest
     environment:
-      # ← your generated UUID from `/bin/kafka-storage random-uuid`
+      # your generated CLUSTER_ID
       CLUSTER_ID: DIotZsJ5Tc6mkdyJOfD3lQ
 
-      # ← explicitly turn on KRaft metadata mode
+      # run Kafka in KRaft mode
       KAFKA_ENABLE_KRAFT: "yes"
-
-      # ← run as both broker & controller
       KAFKA_PROCESS_ROLES: "broker,controller"
-
-      # ← a unique integer per node (1 in a single‑node setup)
       KAFKA_NODE_ID: "1"
-
-      # ← controller quorum definition
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
 
-      # ← inside‑container listeners for clients & controller
+      # listeners inside the container
       KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
-
-      # ← mark which listener is the controller listener
       KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-
-      # ← which listener inter‑broker traffic uses
       KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
 
-      # ← what address your producer/consumer sees
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092"
+      # advertise the Docker DNS name (for other containers)
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
 
-      # ← where to store the data inside the container
+      # where to store data
       KAFKA_LOG_DIRS: "/var/lib/kafka/data"
     ports:
-      - "9092:9092"   # client port
-      - "9093:9093"   # controller port
+      - "9092:9092"   # client
+      - "9093:9093"   # controller
     healthcheck:
-      test: ["CMD", "bash", "-c", "echo » | nc localhost 9092 || exit 1"]
+      test: ["CMD", "bash", "-c", "echo '' | nc -z kafka 9092"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,12 +36,18 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "rabbitmqctl status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
+    depends_on:
+      - kafka
     environment:
       KAFKA_BROKERCONNECT: "kafka:9092"
       JVM_OPTS: "-Xms32M -Xmx64M"
     ports:
       - "9000:9000"
-    depends_on:
-      - kafka

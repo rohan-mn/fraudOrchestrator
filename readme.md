@@ -18,3 +18,27 @@
 - Kafka: http://localhost:9000
 - RabbitMQ: http://localhost:15672
 - Jira: your‑org.atlassian.net
+
+# steps
+1)docker compose exec kafka `
+  kafka-topics `
+    --create `
+    --topic transactions `
+    --bootstrap-server kafka:9092 `
+    --partitions 6 `
+    --replication-factor 1
+
+2)docker compose exec kafka kafka-topics --list --bootstrap-server kafka:9092
+
+3)docker compose exec kafka `
+  kafka-topics `
+    --describe `
+    --topic transactions `
+    --bootstrap-server kafka:9092
+
+4)docker compose exec kafka `
+  kafka-console-consumer `
+    --bootstrap-server kafka:9092 `
+    --topic transactions `
+    --from-beginning `
+    --max-messages 5
