@@ -46,3 +46,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:9092"
+      JVM_OPTS: "-Xms32M -Xmx64M"
+    ports:
+      - "9000:9000"
+    depends_on:
+      - kafka
