@@ -1,0 +1,48 @@
+services:
+ 
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    environment:
+      # ← your generated UUID from `/bin/kafka-storage random-uuid`
+      CLUSTER_ID: DIotZsJ5Tc6mkdyJOfD3lQ
+
+      # ← explicitly turn on KRaft metadata mode
+      KAFKA_ENABLE_KRAFT: "yes"
+
+      # ← run as both broker & controller
+      KAFKA_PROCESS_ROLES: "broker,controller"
+
+      # ← a unique integer per node (1 in a single‑node setup)
+      KAFKA_NODE_ID: "1"
+
+      # ← controller quorum definition
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+
+      # ← inside‑container listeners for clients & controller
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+
+      # ← mark which listener is the controller listener
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+
+      # ← which listener inter‑broker traffic uses
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+
+      # ← what address your producer/consumer sees
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092"
+
+      # ← where to store the data inside the container
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+    ports:
+      - "9092:9092"   # client port
+      - "9093:9093"   # controller port
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo » | nc localhost 9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
