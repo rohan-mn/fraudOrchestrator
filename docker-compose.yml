@@ -1,32 +1,52 @@
+version: '3.7'
+
 services:
 
   kafka:
     image: confluentinc/cp-kafka:latest
     environment:
-      # your generated CLUSTER_ID
+      # your generated UUID
       CLUSTER_ID: DIotZsJ5Tc6mkdyJOfD3lQ
 
-      # run Kafka in KRaft mode
+      # KRaft mode (no ZooKeeper)
       KAFKA_ENABLE_KRAFT: "yes"
       KAFKA_PROCESS_ROLES: "broker,controller"
       KAFKA_NODE_ID: "1"
       KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
 
-      # listeners inside the container
-      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
-      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
-      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      # Define 3 listeners: internal, external, controller
+      KAFKA_LISTENERS: >
+        INTERNAL://0.0.0.0:29092,
+        EXTERNAL://0.0.0.0:9092,
+        CONTROLLER://0.0.0.0:9093
 
-      # advertise the Docker DNS name (for other containers)
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      # Advertise each for its purpose
+      KAFKA_ADVERTISED_LISTENERS: >
+        INTERNAL://kafka:29092,
+        EXTERNAL://localhost:9092,
+        CONTROLLER://kafka:9093
 
-      # where to store data
-      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+      # Map listener names to protocols
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >
+        INTERNAL:PLAINTEXT,
+        EXTERNAL:PLAINTEXT,
+        CONTROLLER:PLAINTEXT
+
+      # Which listener inter‑broker uses
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      # Which listener is the controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Data directory
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
     ports:
-      - "9092:9092"   # client
-      - "9093:9093"   # controller
+      - "9092:9092"   # EXTERNAL → host producers/consumers
+      - "29092:29092" # INTERNAL → other containers (Kafdrop, detector)
+      - "9093:9093"   # controller port
+
     healthcheck:
-      test: ["CMD", "bash", "-c", "echo '' | nc -z kafka 9092"]
+      test: ["CMD", "bash", "-c", "echo '' | nc -z kafka 29092"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -47,7 +67,8 @@ services:
     depends_on:
       - kafka
     environment:
-      KAFKA_BROKERCONNECT: "kafka:9092"
+      # point at the INTERNAL listener
+      KAFKA_BROKERCONNECT: kafka:29092
       JVM_OPTS: "-Xms32M -Xmx64M"
     ports:
       - "9000:9000"
