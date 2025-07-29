@@ -48,3 +48,4 @@ delete a topic:
 5)docker compose exec kafka `
   kafka-topics --bootstrap-server localhost:9092 \
                --delete --topic transactions
+
